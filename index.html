@@ -1,0 +1,696 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Trophy, Play, RefreshCw, Home, Timer, Target, Search, RotateCcw, MapPin, Users, Keyboard, Info } from 'lucide-react';
+
+/**
+ * 【383全レコード・データ設定エリア】
+ * 形式: 番号,町名,よみ,ローマ字,地区,人口
+ */
+const RAW_CSV_DATA = `
+1,双水,そうずい,sozui,唐津,355
+2,つつじ丘,つつじがおか,tsutsujigaoka,唐津,526
+3,夕日,ゆうひ,yuhi,唐津,84
+4,上久里,かみくり,kamikuri,唐津,970
+5,下久里,しもくり,shimokuri,唐津,1049
+6,中原,なかばる,nakabaru,唐津,829
+7,鏡虹町,かがみにじまち,kagaminijimachi,唐津,1078
+8,鏡山添,かがみやまぞえ,kagamiyamazoe,唐津,1221
+9,鏡田中,かがみたなか,kagamitanaka,唐津,1652
+10,鏡今村,かがみいまむら,kagamiimamura,唐津,504
+11,鏡今組,かがみいまぐみ,kagamiimagumi,唐津,1568
+12,鏡町,かがみまち,kagamimachi,唐津,427
+13,鏡辻,かがみつじ,kagamitsuji,唐津,1822
+14,鏡梶原,かがみかじわら,kagamikajiwara,唐津,805
+15,鏡高畑,かがみたかばたけ,kagamitakabatake,唐津,196
+16,松南町,しょうなんまち,shonanmachi,唐津,608
+17,原東,はるひがし,haruhigashi,唐津,1679
+18,原西,はるにし,harunishi,唐津,1795
+19,柏崎,かしわざき,kashiwazaki,唐津,453
+20,半田矢作,はだやはぎ,hadayahagi,唐津,200
+21,半田本村,はだほんむら,hadahonmura,唐津,190
+22,半田中組,はだなかぐみ,hadanakagumi,唐津,141
+23,半田河内,はだかわち,hadakawachi,唐津,122
+24,宇木上,うきかみ,ukikami,唐津,93
+25,宇木中,うきなか,ukinaka,唐津,116
+26,宇木下,うきしも,ukishimo,唐津,75
+27,東宇木,ひがしうき,higashiuki,唐津,178
+28,山本荘苑,やまもとそうえん,yamamotosoen,唐津,459
+29,山本,やまもと,yamamoto,唐津,1310
+30,山本西新町,やまもとにししんまち,yamamotonishishinmachi,唐津,525
+31,石志,いしし,ishishi,唐津,781
+32,畑島,はたしま,hatashima,唐津,187
+33,山田,やまだ,yamada,唐津,270
+34,千々賀,ちちか,chichika,唐津,998
+35,養母田,やぶた,yabuta,唐津,673
+36,養母田鬼塚,やぶたおにづか,yabutaonizuka,唐津,323
+37,鬼塚橋本,おにづかはしもと,onizukahashimoto,唐津,157
+38,高島,たかしま,takashima,唐津,175
+39,東唐津１丁目,ひがしからつ１ちょうめ,higashikaratsu1chome,唐津,227
+40,東唐津２丁目,ひがしからつ２ちょうめ,higashikaratsu2chome,唐津,301
+41,東唐津３丁目,ひがしからつ３ちょうめ,higashikaratsu3chome,唐津,320
+42,東唐津４丁目,ひがしからつ４ちょうめ,higashikaratsu4chome,唐津,258
+43,和多田百人町,わただひゃくにんまち,watadahyakuninmachi,唐津,254
+44,和多田東百人町,わただひがしひゃくにんまち,watadahigashihyakuninmachi,唐津,172
+45,和多田海士町,わただあままち,watadaamamachi,唐津,290
+46,和多田南先石,わただみなみさきいし,watadaminamisakiishi,唐津,735
+47,和多田先石,わたださきいし,watadasakiishi,唐津,1265
+48,和多田西山,わただにしやま,watadanishiyama,唐津,1145
+49,和多田本村,わただほんむら,watadahonmura,唐津,1325
+50,和多田大土井,わただおおどい,watadaoodoi,唐津,1022
+51,和多田用尺東,わただようじゃくひがし,watadayojakuhigashi,唐津,361
+52,和多田用尺西,わただようじゃくにし,watadayojakunishi,唐津,420
+53,和多田用尺南,わただようじゃくみなみ,watadayojakuminami,唐津,390
+54,長谷,ながたに,nagatani,唐津,289
+55,和多田天満町１,わただてんまんちょう１,watadatenmancho1,唐津,765
+56,和多田天満町２,わただてんまんちょう２,watadatenmancho2,唐津,202
+57,東町,ひがしまち,higashimachi,唐津,413
+58,船宮町,ふなみやまち,funamiyamachi,唐津,162
+59,元石町,もといしまち,motoishimachi,唐津,784
+60,東十人町,ひがしじゅうにんまち,higashijuninmachi,唐津,231
+61,西十人町,にしじゅうにんまち,nishijuninmachi,唐津,193
+62,水主町,かこまち,kakomachi,唐津,218
+63,大石町,おおいしまち,ooishimachi,唐津,246
+64,魚屋町,うおやまち,uoyamachi,唐津,95
+65,東材木町,ひがしざいもくまち,higashizaimokumachi,唐津,190
+66,西材木町,にしざいもくまち,nishizaimokumachi,唐津,106
+67,栄町,さかえまち,sakaemachi,唐津,492
+68,千代田町,ちよだまち,chiyodamachi,唐津,357
+69,東城内,ひがしじょうない,higashijonai,唐津,399
+70,西城内,にしじょうない,nishijonai,唐津,496
+71,南城内,みなみじょうない,minamijonai,唐津,82
+72,北城内,きたじょうない,kitajonai,唐津,225
+73,大名小路,だいみょうこうじ,daimyokoji,唐津,190
+74,木綿町,きわたまち,kiwatamachi,唐津,75
+75,本町,ほんまち,honmachi,唐津,64
+76,中町,なかまち,nakamachi,唐津,144
+77,京町,きょうまち,kyomachi,唐津,61
+78,高砂町,たかさごまち,takasagomachi,唐津,90
+79,呉服町,ごふくまち,gofukumachi,唐津,59
+80,米屋町,こめやまち,komeyamachi,唐津,42
+81,紺屋町,こんやまち,konyamachi,唐津,75
+82,八百屋町,やおやまち,yaoyamachi,唐津,53
+83,刀町,かたなまち,katanamachi,唐津,76
+84,新町,しんまち,shinmachi,唐津,93
+85,平野町,ひらのまち,hiranomachi,唐津,132
+86,弓鷹町,ゆみたかまち,yumitakamachi,唐津,148
+87,西寺町,にしでらまち,nishideramachi,唐津,354
+88,坊主町,ぼうずまち,bozumachi,唐津,375
+89,山下町,やましたまち,yamashitamachi,唐津,392
+90,桜馬場,さくらのばば,sakuranobaba,唐津,261
+91,東朝日町,ひがしあさひまち,higashiasahimachi,唐津,74
+92,西朝日町,にしあさひまち,nishiasahimachi,唐津,118
+93,江川町,えがわまち,egawamachi,唐津,226
+94,元旗町,もとはたまち,motohatamachi,唐津,103
+95,西旗町,にしはたまち,nishihatamachi,唐津,368
+96,富士見町,ふじみまち,fujimimachi,唐津,285
+97,南富士見町,みなみふじみまち,minamifujimimachi,唐津,235
+98,西浜町,にしはままち,nishihamamachi,唐津,142
+99,東新興町,ひがししんこうまち,higashishinkomachi,唐津,94
+100,西新興町,にししんこうまち,nishishinkomachi,唐津,940
+101,町田１丁目,ちょうだ１ちょうめ,choda1chome,唐津,791
+102,町田２丁目,ちょうだ２ちょうめ,choda2chome,唐津,400
+103,町田３丁目,ちょうだ３ちょうめ,choda3chome,唐津,588
+104,町田４丁目,ちょうだ４ちょうめ,choda4chome,唐津,737
+105,町田５丁目,ちょうだ５ちょうめ,choda5chome,唐津,368
+106,旭が丘,あさひがおか,asahigaoka,唐津,1338
+107,熊原町,くまのはらまち,kumanoharamachi,唐津,710
+108,東菜畑,ひがしなばたけ,higashinabatake,唐津,472
+109,西菜畑,にしなばたけ,nishinabatake,唐津,1063
+110,南菜畑,みなみなばたけ,minaminabatake,唐津,613
+111,見借,みるかし,mirukashi,唐津,251
+112,神田中村,こうだなかむら,koudanakamura,唐津,1470
+113,神田山口,こうだやまぐち,koudayamaguchi,唐津,531
+114,神田風早,こうだかざはや,koudakazahaya,唐津,412
+115,神田陽光台,こうだようこうだい,koudayokodai,唐津,490
+116,神田長松,こうだちょうまつ,koudachomatsu,唐津,355
+117,神田内田,こうだうちだ,koudauchida,唐津,411
+118,神田西浦,こうだにしうら,koudanishiura,唐津,1041
+119,神田上神田,こうだかみこうだ,koudakamikouda,唐津,1190
+120,二タ子１丁目,ふたご１ちょうめ,futago1chome,唐津,978
+121,二タ子２丁目,ふたご２ちょうめ,futago2chome,唐津,450
+122,二タ子３丁目東,ふたご３ちょうめひがし,futago3chomehigashi,唐津,660
+123,二タ子３丁目西,ふたご３ちょうめにし,futago3chomenishi,唐津,113
+124,二タ子３丁目南,ふたご３ちょうめみなみ,futago3chomeminami,唐津,99
+125,西唐津１丁目,にしからつ１ちょうめ,nishikaratsu1chome,唐津,343
+126,西唐津２丁目,にしからつ２ちょうめ,nishikaratsu2chome,唐津,550
+127,西唐津３丁目,にしからつ３ちょうめ,nishikaratsu3chome,唐津,168
+128,中山町,なかやままち,nakayamamachi,唐津,331
+129,妙見東町,みょうけんひがしまち,myokenhigashimachi,唐津,157
+130,妙見中町,みょうけんなかまち,myokennakamachi,唐津,108
+131,妙見西町,みょうけんにしまち,myokennishimachi,唐津,88
+132,海岸通,かいがんどおり,kaigandori,唐津,297
+133,藤崎通,ふじさきどおり,fujisakidori,唐津,140
+134,大島町,おおしままち,ooshimamachi,唐津,504
+135,竹木場,たけこば,takekoba,唐津,277
+136,唐川,とうのかわ,tonokawa,唐津,172
+137,菅牟田,すがむた,sugamuta,唐津,104
+138,重河内,しげかわち,shigekawachi,唐津,54
+139,熊ノ峰,くまのみね,kumanomine,唐津,24
+140,東山,ひがしやま,higashiyama,唐津,75
+141,八幡町,やはたまち,yahatamachi,唐津,1183
+142,桜町,さくらまち,sakuramachi,唐津,204
+143,橋本町,はしもとまち,hashimotomachi,唐津,297
+144,佐志南,さしみなみ,sashiminami,唐津,851
+145,佐志中里,さしなかざと,sashinakazato,唐津,83
+146,佐志中通,さしなかどおり,sashinakadori,唐津,397
+147,佐志浜町,さしはままち,sashihamamachi,唐津,243
+148,唐房１丁目,とうぼう１ちょうめ,tobo1chome,唐津,123
+149,唐房２丁目,とうぼう２ちょうめ,tobo2chome,唐津,76
+150,唐房３丁目,とうぼう３ちょうめ,tobo3chome,唐津,84
+151,唐房４丁目,とうぼう４ちょうめ,tobo4chome,唐津,84
+152,唐房５丁目,とうぼう５ちょうめ,tobo5chome,唐津,70
+153,唐房６丁目,とうぼう６ちょうめ,tobo6chome,唐津,535
+154,唐房７丁目,とうぼう７ちょうめ,tobo7chome,唐津,45
+155,浦,うら,ura,唐津,756
+156,鳩川,はとがわ,hatogawa,唐津,63
+157,枝去木,えざるき,ezaruki,唐津,383
+158,大良,だいら,daira,唐津,224
+159,後川内,うしろがわち,ushirogawachi,唐津,298
+160,梨川内,なしがわち,nashigawachi,唐津,127
+161,相賀,おうか,ouka,唐津,602
+162,湊町浜,みなとまちはま,minatomachihama,唐津,627
+163,湊町岡,みなとまちおか,minatomachioka,唐津,756
+164,屋形石,やかたいし,yakataishi,唐津,216
+165,横野,よこの,yokono,唐津,83
+166,中里,なかざと,nakazato,唐津,27
+167,神集島,かしわじま,kashiwajima,唐津,242
+168,浜,はま,hama,浜玉,579
+169,東,ひがし,higashi,浜玉,496
+170,西,にし,nishi,浜玉,1614
+171,砂子,すなご,sunago,浜玉,1046
+172,横田下,よこたしも,yokotashimo,浜玉,2931
+173,横田上,よこたかみ,yokotakami,浜玉,1772
+174,野田,のだ,noda,浜玉,247
+175,山田,やまだ,yamada,浜玉,356
+176,山瀬,やませ,yamase,浜玉,6
+177,大江,おおえ,ooe,浜玉,402
+178,渕上,ふちのうえ,fuchinoue,浜玉,295
+179,谷口,たにぐち,taniguchi,浜玉,144
+180,岡口,おかぐち,okaguchi,浜玉,135
+181,五反田,ごたんだ,gotanda,浜玉,240
+182,南山下,みなみやました,minamiyamashita,浜玉,285
+183,南山上,みなみやまかみ,minamiyamakami,浜玉,322
+184,柳瀬,やなぜ,yanaze,浜玉,29
+185,座主,ざす,zasu,浜玉,185
+186,戸房,とぼう,tobo,浜玉,101
+187,古瀬,こせ,kose,浜玉,124
+188,中原,なかばる,nakabaru,浜玉,87
+189,草場,くさば,kusaba,浜玉,71
+190,今坂,いまさか,imasaka,浜玉,158
+191,鳥巣,とりす,torisu,浜玉,88
+192,天川,あまがわ,amagawa,厳木,85
+193,星領,ほしりょう,hoshiryo,厳木,15
+194,広川,ひろかわ,hirokawa,厳木,29
+195,鳥越,とりごえ,torigoe,厳木,21
+196,平之,ひらの,hirano,厳木,54
+197,浦川内,うらがわち,uragawachi,厳木,158
+198,広瀬,ひろせ,hirose,厳木,246
+199,中島,なかしま,nakashima,厳木,406
+200,牧瀬,まきせ,makise,厳木,236
+201,旭ヶ丘,あさひがおか,asahigaoka,厳木,64
+202,瀬戸木場,せとこば,setokoba,厳木,40
+203,厳木,きゅうらぎ,kyuragi,厳木,285
+204,浪瀬,なみせ,namise,厳木,182
+205,箞木,うつぼき,utsuboki,厳木,126
+206,岩屋,いわや,iwaya,厳木,543
+207,新屋敷,しんやしき,shinyashiki,厳木,294
+208,本山,もとやま,motoyama,厳木,218
+209,高倉,たかくら,takakura,厳木,199
+210,椋ノ木,むくのき,mukunoki,厳木,65
+211,相知,おうち,ouchi,相知,1143
+212,緑山,みどりやま,midoriyama,相知,165
+213,長部田,ながへた,nagaheta,相知,147
+214,新長,しんちょう,shinchou,相知,6
+215,町切,ちょうぎり,chogiri,相知,182
+216,高倉,たかくら,takakura,相知,55
+217,楠,くす,kusu,相知,58
+218,田頭,たがしら,tagashira,相知,133
+219,湯屋,ゆや,yuya,相知,31
+220,横枕,よこまくら,yokomakura,相知,77
+221,千束,せんぞく,senzoku,相知,173
+222,中山,なかやま,nakayama,相知,839
+223,山﨑,やまさき,yamasaki,相知,23
+224,久保,くぼ,kubo,相知,119
+225,上相知,かみおうち,kamiouchi,相知,4
+226,牟田部,むたべ,mutabe,相知,297
+227,坊中,ぼうちゅう,bochu,相知,105
+228,佐里上,さりかみ,sarikami,相知,146
+229,佐里下,さりしも,sarishimo,相知,243
+230,杉野,すぎの,sugino,相知,182
+231,西和田,にしわだ,nishiwada,相知,111
+232,和田,わだ,wada,相知,85
+233,池,いけ,ike,相知,0
+234,蕨野,わらびの,warabino,相知,141
+235,平山中組,ひらやまなかぐみ,hirayamanakagumi,相知,58
+236,尾部田,おべた,obeta,相知,228
+237,平山下,ひらやましも,hirayamashimo,相知,134
+238,山手町,やまてまち,yamatemachi,相知,55
+239,伊岐佐上,いきさかみ,ikisakami,相知,168
+240,伊岐佐上中,いきさかみなか,ikisakaminaka,相知,109
+241,伊岐佐下中,いきさしもなか,ikisashimonaka,相知,108
+242,伊岐佐下,いきさしも,ikisashimo,相知,142
+243,幸ノ元,こうのもと,kounomoto,相知,22
+244,黒岩,くろいわ,kuroiwa,相知,150
+245,大野,おおの,oono,相知,282
+246,米ノ山,こめのやま,komenoyama,相知,73
+247,高見台,たかみだい,takamidai,相知,162
+248,サリバン,さりばん,sariban,相知,35
+249,作礼荘,さくれいそう,sakureiso,相知,55
+250,のぞみ,のぞみ,nozomi,相知,34
+251,徳須恵,とくすえ,tokusue,北波多,693
+252,大杉,おおすぎ,oosugi,北波多,99
+253,岸山,きしやま,kishiyama,北波多,37
+254,矢代町,やしろまち,yashiromachi,北波多,466
+255,芳谷,よしたに,yoshitani,北波多,145
+256,稗田１区,ひえだ１く,hieda1ku,北波多,244
+257,稗田２区,ひえだ２く,hieda2ku,北波多,116
+258,志気,しげ,shige,北波多,143
+259,行合野,ゆきあいの,yukiaino,北波多,117
+260,田中,たなか,tanaka,北波多,228
+261,下竹有,しもたけあり,shimotakeari,北波多,57
+262,上竹有,かみたけあり,kamitakeari,北波多,94
+263,山彦,やまひこ,yamahiko,北波多,77
+264,下平野,しもひらの,shimohirano,北波多,59
+265,上平野,かみひらの,kamihirano,北波多,74
+266,成渕,なるふち,narufuchi,北波多,121
+267,千草野,ちぐさの,chigusano,北波多,889
+268,立園,たつぞの,tatsuzono,北波多,153
+269,入野東,いりのひがし,irinohigashi,肥前,345
+270,入野西,いりのにし,irinonishi,肥前,283
+271,晴気,はるけ,haruke,肥前,134
+272,犬頭,いぬがしら,inugashira,肥前,27
+273,星賀,ほしか,hoshika,肥前,467
+274,向島,むくしま,mukushima,肥前,40
+275,駄竹,だちく,dachiku,肥前,179
+276,納所西,のうさにし,nousanishi,肥前,414
+277,納所東,のうさひがし,nousahigashi,肥前,324
+278,京泊,きょうどまり,kyodomari,肥前,107
+279,鶴牧,つるまき,tsurumaki,肥前,98
+280,菖津,しょうづ,shozu,肥前,221
+281,大鶴,おおつる,ootsuru,肥前,30
+282,梅崎,うめざき,umezaki,肥前,74
+283,寺浦,てらうら,teraura,肥前,86
+284,新木場,にいこば,niikoba,肥前,207
+285,上ヶ倉,あげくら,agekura,肥前,37
+286,田野,たの,tano,肥前,183
+287,新田,しんでん,shinden,肥前,47
+288,高串,たかくし,takakushi,肥前,717
+289,阿漕,あこぎ,akogi,肥前,0
+290,切木,きりご,kirigo,肥前,266
+291,赤坂,あかさか,akasaka,肥前,20
+292,湯野浦,ゆのうら,yunoura,肥前,77
+293,杉野浦,すぎのうら,suginoura,肥前,100
+294,中浦,なかうら,nakaura,肥前,109
+295,大浦岡,おおうらおか,oouraoka,肥前,96
+296,大浦浜,おおうらはま,oourahama,肥前,153
+297,満越,みつこし,mitsukoshi,肥前,88
+298,瓜ヶ坂,うりがさか,urigasaka,肥前,140
+299,八折栄,やおりえ,yaorie,肥前,56
+300,万賀里川,まがりかわ,magarikawa,肥前,161
+301,仁田野尾,にたのお,nitanoo,肥前,65
+302,牧野地,まきのじ,makinoji,肥前,24
+303,鬼木,おにき,oniki,馬渡島,12
+304,一堂,いちどう,ichido,馬渡島,5
+305,野元,のもと,nomoto,馬渡島,41
+306,元組,もとぐみ,motogumi,馬渡島,245
+307,茜屋町,あかねやまち,akaneyamachi,馬渡島,148
+308,畑ヶ中,はたがなか,hataganaka,馬渡島,111
+309,沙子,すなご,sunago,馬渡島,75
+310,麦原,むぎはら,mugihara,馬渡島,41
+311,先部,さきべ,sakibe,馬渡島,107
+312,浦方,うらかた,urakata,馬渡島,124
+313,殿山,とのやま,tonoyama,馬渡島,158
+314,先方,さきかた,sakikata,馬渡島,60
+315,古里,ふるさと,furusato,馬渡島,79
+316,中町,なかまち,nakamachi,馬渡島,28
+317,海士町,あまがいち,amagaichi,馬渡島,51
+318,串,くし,kushi,馬渡島,213
+319,前田,まえだ,maeda,馬渡島,127
+320,竹ノ内,たけのうち,takenouchi,馬渡島,179
+321,加唐島,かからしま,kakarashima,馬渡島,97
+322,松島,まつしま,matsushima,馬渡島,51
+323,宮ノ本,みやのもと,miyanomoto,馬渡島,119
+324,野中,のなか,nonaka,馬渡島,44
+325,二タ松,ふたまつ,futamatsu,馬渡島,70
+326,村下,むらした,murashita,鎮西,136
+327,深田,ふかだ,fukada,鎮西,78
+328,中通下,なかどおりしも,nakadoorishimo,鎮西,42
+329,中通上,なかどおりかみ,nakadoorikami,鎮西,48
+330,中平,なかひら,nakahira,鎮西,63
+331,潟,かた,kata,鎮西,57
+332,横竹,よこたけ,yokotake,鎮西,191
+333,石室上一班,いしむろかみいちはん,ishimurokamiichihan,鎮西,86
+334,石室上二班,いしむろかみにはん,ishimurokaminihan,鎮西,75
+335,石室下一班,いしむろしもいちはん,ishimuroshimoichihan,鎮西,52
+336,石室下二班,いしむろしもにはん,ishimuroshimonihan,鎮西,43
+337,加倉,かくら,kakura,鎮西,88
+338,高野,こうの,kouno,鎮西,56
+339,岩野,いわの,iwano,鎮西,100
+340,八床,やとこ,yatoko,鎮西,101
+341,菖蒲,しょうぶ,shobu,鎮西,191
+342,早田,はやた,hayata,鎮西,142
+343,塩鶴,しおづる,shiozuru,鎮西,116
+344,赤木,あかぎ,akagi,鎮西,158
+345,中野,なかの,nakano,鎮西,121
+346,辻,つじ,tsuji,鎮西,75
+347,丸田,まるだ,maruda,鎮西,136
+348,うしお台,うしおだい,ushiodai,鎮西,112
+349,先方町,さきかたまち,sakikatamachi,呼子,191
+350,海士町,あまがいち,amagaichi,呼子,150
+351,釣町,つりまち,tsurimachi,呼子,68
+352,小倉町,おぐらまち,oguramachi,呼子,21
+353,中町,なかまち,nakamachi,呼子,175
+354,宮ノ町,みやのまち,miyanomachi,呼子,68
+355,天満町,てんまんちょう,tenmancho,呼子,41
+356,松浦町,まつうらまち,matsuuramachi,呼子,148
+357,川端町,かわばたまち,kawabatamachi,呼子,424
+358,愛宕町,あたごまち,atagomachi,呼子,385
+359,殿ノ浦岡,とののうらおか,tononouraoka,呼子,244
+360,殿ノ浦西,とののうらにし,tononouranishi,呼子,566
+361,殿ノ浦浜,とののうらはま,tononourahama,呼子,155
+362,小友,こども,kodomo,呼子,176
+363,大友,おおども,oodomo,呼子,35
+364,片島,かたしま,katashima,呼子,72
+365,加部島,かべしま,kabeshima,呼子,357
+366,小川島,おがわしま,ogawashima,呼子,234
+367,大白木,おおしらき,ooshiraki,七山,98
+368,狩川,かりがわ,karigawa,七山,114
+369,樽門,たるもん,tarumon,七山,142
+370,藤川,ふじかわ,fujikawa,七山,77
+371,野井原,のいはら,noihara,七山,216
+372,林ノ上,はやしのうえ,hayashinoue,七山,36
+373,馬川,まのかわ,manokawa,七山,115
+374,荒川,あらかわ,arakawa,七山,77
+375,桑原,くわばら,kuwabara,七山,41
+376,中原,なかばる,nakabaru,七山,36
+377,大屋敷,おおやしき,ooyashiki,七山,22
+378,博多,はかた,hakata,七山,26
+379,古村,ふるむら,furumura,七山,43
+380,西木浦,にしきうら,nishikiura,七山,106
+381,仁部,にぶ,nibu,七山,136
+382,柳瀬,やなぜ,yanaze,七山,61
+383,滝川,たきがわ,takigawa,七山,285
+`.trim();
+
+const INITIAL_TIME = 60;
+
+export default function App() {
+  const [gameState, setGameState] = useState('title');
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userInput, setUserInput] = useState("");
+  const [gameQuestions, setGameQuestions] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
+  
+  const [stats, setStats] = useState({
+    correctChars: 0,
+    totalChars: 0,
+    missedChars: 0,
+    combo: 0,
+    maxCombo: 0,
+    questionsCleared: 0
+  });
+
+  /**
+   * CSVデータをパースしてリスト化
+   */
+  const QUESTIONS = useMemo(() => {
+    return RAW_CSV_DATA.split('\n')
+      .filter(line => line.trim() !== '')
+      .map(line => {
+        const [no, name, reading, romaji, area, pop] = line.split(',');
+        return { 
+          no: Number(no), 
+          name: name || "", 
+          reading: reading || "", 
+          romaji: (romaji || "").replace(/\s+/g, '').toLowerCase().trim(), 
+          area: area || "", 
+          pop: pop || "" 
+        };
+      })
+      .filter(q => q.romaji);
+  }, []);
+
+  useEffect(() => {
+    let timer;
+    if (gameState === 'playing' && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && gameState === 'playing') {
+      setGameState('result');
+    }
+    return () => clearInterval(timer);
+  }, [gameState, timeLeft]);
+
+  const startGame = () => {
+    if (QUESTIONS.length === 0) return;
+    const shuffled = [...QUESTIONS].sort(() => Math.random() - 0.5);
+    setGameQuestions(shuffled);
+    setCurrentQuestionIndex(0);
+    setUserInput("");
+    setTimeLeft(INITIAL_TIME);
+    setStats({
+      correctChars: 0, totalChars: 0, missedChars: 0, combo: 0, maxCombo: 0, questionsCleared: 0
+    });
+    setGameState('playing');
+  };
+
+  const handleKeyDown = useCallback((e) => {
+    if (gameState !== 'playing') return;
+    if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(e.key)) return;
+
+    const currentQ = gameQuestions[currentQuestionIndex];
+    if (!currentQ || !currentQ.romaji) return;
+
+    const target = currentQ.romaji;
+    const nextChar = target[userInput.length];
+
+    if (e.key.toLowerCase() === nextChar) {
+      const newInput = userInput + e.key.toLowerCase();
+      setUserInput(newInput);
+      setStats(prev => ({
+        ...prev,
+        correctChars: prev.correctChars + 1,
+        totalChars: prev.totalChars + 1,
+        combo: prev.combo + 1,
+        maxCombo: Math.max(prev.maxCombo, prev.combo + 1)
+      }));
+
+      if (newInput === target) {
+        setStats(prev => ({ ...prev, questionsCleared: prev.questionsCleared + 1 }));
+        setTimeout(() => {
+          setCurrentQuestionIndex(prev => (prev + 1) % gameQuestions.length);
+          setUserInput("");
+        }, 80);
+      }
+    } else {
+      setStats(prev => ({ ...prev, totalChars: prev.totalChars + 1, missedChars: prev.missedChars + 1, combo: 0 }));
+    }
+  }, [gameState, gameQuestions, currentQuestionIndex, userInput]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  const calculateAccuracy = () => stats.totalChars === 0 ? 100 : Math.floor((stats.correctChars / stats.totalChars) * 100);
+  const calculateKPS = () => {
+    const timeSpent = INITIAL_TIME - timeLeft;
+    return timeSpent <= 0 ? 0 : (stats.correctChars / timeSpent).toFixed(1);
+  };
+
+  const getRank = () => {
+    const qCount = stats.questionsCleared;
+    if (qCount >= 35) return { title: "伝説の唐津っ子", color: "text-red-600", desc: "がばい凄か！神の領域たい！383町名を完全に制覇したも同然ばい！" };
+    if (qCount >= 25) return { title: "唐津大好き民", color: "text-orange-500", desc: "素晴らしい！唐津全域を隅々まで知り尽くしとるばい！" };
+    if (qCount >= 18) return { title: "地名マスター", color: "text-emerald-600", desc: "なかなかの実力たい。あんた、地元のことよう知っとるね！" };
+    if (qCount >= 11) return { title: "地元住民", color: "text-blue-500", desc: "立派な地元民たい。さらに上を目指して頑張らんば！" };
+    if (qCount >= 6) return { title: "見習い調査員", color: "text-amber-600", desc: "少しずつ地名を覚えてきたね。その調子たい！" };
+    return { title: "地名初級者", color: "text-slate-500", desc: "まずは地元周辺の町名から覚えんば。また挑戦してね！" };
+  };
+
+  const activeQ = gameQuestions[currentQuestionIndex];
+  const targetRomaji = activeQ ? activeQ.romaji : "";
+
+  // 文字数に応じてフォントサイズを動的に調整
+  const getRomajiStyle = (text) => {
+    const len = text.length;
+    if (len > 25) return "text-lg sm:text-xl md:text-2xl tracking-normal";
+    if (len > 18) return "text-xl sm:text-2xl md:text-3xl tracking-tight";
+    if (len > 12) return "text-2xl sm:text-3xl md:text-4xl tracking-normal";
+    return "text-3xl sm:text-4xl md:text-5xl tracking-widest";
+  };
+
+  return (
+    <div className="min-h-screen bg-neutral-900 font-sans text-neutral-100 flex flex-col items-center justify-center p-4 overflow-hidden text-center select-none">
+      
+      {/* 背景の装飾テキスト */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03] flex flex-wrap gap-10 p-10 overflow-hidden select-none">
+        {QUESTIONS.slice(0, 50).map((q, idx) => <span key={idx} className="text-4xl font-black">{q.name}</span>)}
+      </div>
+
+      <div className="w-full max-w-2xl bg-neutral-800 rounded-[3rem] shadow-2xl overflow-hidden relative z-10 border-4 border-neutral-700">
+        
+        {/* タイトル画面 */}
+        {gameState === 'title' && (
+          <div className="p-12 animate-in fade-in zoom-in duration-500">
+            <div className="mb-10 flex justify-center relative">
+              <div className="absolute inset-0 bg-emerald-500 blur-[60px] opacity-20 rounded-full animate-pulse"></div>
+              <div className="relative bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600 p-8 rounded-[2.5rem] shadow-2xl transform rotate-3 hover:rotate-0 transition-all duration-300 border border-emerald-300/40">
+                <div className="absolute -top-4 -right-4 bg-neutral-800 p-3 rounded-full shadow-lg border-2 border-emerald-400 z-10 animate-bounce">
+                  <MapPin size={24} className="text-emerald-400" />
+                </div>
+                <Keyboard size={64} className="text-white drop-shadow-md" />
+              </div>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black mb-4 text-emerald-400 tracking-tighter italic">からつん地名ばタイピング</h1>
+            <p className="text-neutral-400 mb-12 text-lg font-medium tracking-wide">～唐津市の383町名をタイピングで学ぶ～</p>
+            
+            <button 
+              onClick={startGame}
+              className="group relative inline-flex items-center justify-center px-24 py-6 font-black text-white transition-all duration-200 bg-emerald-600 rounded-3xl hover:bg-emerald-500 shadow-2xl transform hover:scale-105 active:scale-95 text-xl"
+            >
+              <Play className="mr-3 fill-current" size={24} /> スタート
+            </button>
+
+            <div className="mt-14 max-w-md mx-auto grid grid-cols-2 gap-4">
+              <div className="p-4 bg-neutral-700/50 rounded-2xl border border-neutral-600 text-center">
+                <Timer className="text-emerald-400 mx-auto mb-2" size={24} />
+                <p className="font-bold text-sm text-neutral-300">制限時間 60秒</p>
+              </div>
+              <div className="p-4 bg-neutral-700/50 rounded-2xl border border-neutral-600 text-center">
+                <Users className="text-emerald-400 mx-auto mb-2" size={24} />
+                <p className="font-bold text-sm text-neutral-300">人口データを表示<span className="block text-[10px] font-normal mt-0.5 opacity-80">(2026年4月現在)</span></p>
+              </div>
+            </div>
+
+            <div className="mt-8 max-w-md mx-auto bg-neutral-800/80 rounded-2xl border border-neutral-600 p-6 text-left shadow-lg">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <Keyboard size={20} className="text-emerald-400" />
+                遊び方
+              </h3>
+              <ul className="text-sm text-neutral-300 space-y-2 list-disc list-inside ml-1">
+                <li>画面に表示される町名をローマ字でタイピングします。</li>
+                <li>プレイ中、その町名の<strong>人口データ</strong>が表示されます。</li>
+                <li>制限時間60秒でどれだけ多くクリアできるか挑戦！</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* プレイ画面 */}
+        {gameState === 'playing' && activeQ && (
+          <div className="p-6 md:p-10">
+            <div className="flex justify-between items-center mb-8 text-left">
+              <div className="flex items-center gap-6">
+                <div className={`text-5xl md:text-6xl font-black font-mono transition-colors ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-emerald-400'}`}>
+                  {timeLeft}<span className="text-xl ml-1">s</span>
+                </div>
+                <button 
+                  onClick={() => setGameState('title')}
+                  className="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-full text-neutral-400 hover:text-white transition-all border border-neutral-600 flex items-center gap-1.5 px-4 shadow-lg"
+                >
+                  <RotateCcw size={18} />
+                  <span className="text-xs font-bold">リトライ</span>
+                </button>
+              </div>
+              
+              <div className="flex gap-4">
+                <div className="bg-neutral-700 px-4 py-2 rounded-2xl border border-neutral-600 text-center min-w-[80px]">
+                  <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest text-center">Clear</p>
+                  <p className="text-2xl font-black text-white">{stats.questionsCleared}</p>
+                </div>
+                <div className="bg-neutral-700 px-4 py-2 rounded-2xl border border-neutral-600 text-center min-w-[80px]">
+                  <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest text-center">Combo</p>
+                  <p className="text-2xl font-black text-orange-400">{stats.combo}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="min-h-[260px] flex flex-col justify-center mb-10">
+              <div className="flex justify-center flex-wrap gap-2 mb-4">
+                <span className="px-3 py-1.5 bg-emerald-900/50 text-emerald-400 text-xs sm:text-sm font-black rounded-full border border-emerald-800 shadow-sm flex items-center gap-1.5">
+                  <MapPin size={12} /> {activeQ.area || "不明"}地区
+                </span>
+                <span className="px-3 py-1.5 bg-blue-900/50 text-blue-400 text-xs sm:text-sm font-black rounded-full border border-blue-800 shadow-sm flex items-center gap-1.5">
+                  <Users size={12} /> 人口: {activeQ.pop || "---"}
+                </span>
+              </div>
+              
+              <div className="text-[10px] text-neutral-500 font-bold mb-1 tracking-widest uppercase">№{activeQ.no || "?"} RECORD</div>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-3 text-white tracking-tight leading-tight uppercase italic break-words">
+                {activeQ.name}
+              </h2>
+              <p className="text-neutral-400 mb-6 text-lg sm:text-xl md:text-2xl tracking-[0.2em] font-medium break-words">
+                {activeQ.reading}
+              </p>
+              
+              {/* 入力エリア */}
+              <div className="bg-neutral-900 p-6 md:p-8 rounded-[2rem] font-mono relative shadow-inner border-b-8 border-black overflow-hidden flex items-center justify-center min-h-[120px]">
+                <div className={`relative z-10 flex flex-wrap justify-center items-center leading-relaxed ${getRomajiStyle(targetRomaji)}`}>
+                  <span className="text-emerald-500 font-black whitespace-pre">{targetRomaji.slice(0, userInput.length)}</span>
+                  <span className="text-white border-b-4 border-emerald-500 mx-0.5 whitespace-pre">
+                    {targetRomaji[userInput.length] || ""}
+                  </span>
+                  <span className="text-neutral-700 whitespace-pre">
+                    {targetRomaji.slice(userInput.length + 1)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-neutral-700 h-2.5 rounded-full overflow-hidden shadow-inner border border-neutral-600">
+              <div 
+                className={`h-full transition-all duration-1000 ease-linear ${timeLeft <= 10 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                style={{ width: `${(timeLeft / INITIAL_TIME) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
+        {/* リザルト画面 */}
+        {gameState === 'result' && (
+          <div className="p-10 md:p-12 animate-in zoom-in duration-500">
+            <Trophy size={80} className="mx-auto text-yellow-500 mb-4 drop-shadow-[0_0_30px_rgba(234,179,8,0.4)]" />
+            <h2 className="text-3xl font-black mb-1 text-white leading-tight uppercase italic">{getRank().title}</h2>
+            <p className={`font-bold text-lg mb-8 ${getRank().color}`}>{getRank().desc}</p>
+
+            <div className="grid grid-cols-2 gap-4 mb-10">
+              <div className="bg-neutral-700/50 p-6 rounded-3xl border border-neutral-600 text-center text-white">
+                <p className="text-[10px] font-bold text-neutral-400 mb-1 uppercase tracking-widest text-center">件数（町名）</p>
+                <p className="text-3xl font-black">{stats.questionsCleared}<span className="text-sm ml-1 text-neutral-400">件</span></p>
+              </div>
+              <div className="bg-neutral-700/50 p-6 rounded-3xl border border-neutral-600 text-center text-white">
+                <p className="text-[10px] font-bold text-neutral-400 mb-1 uppercase tracking-widest text-center">正確率</p>
+                <p className="text-3xl font-black">{calculateAccuracy()}%</p>
+              </div>
+              <div className="bg-neutral-700/50 p-6 rounded-3xl border border-neutral-600 text-center text-white">
+                <p className="text-[10px] font-bold text-neutral-400 mb-1 uppercase tracking-widest text-center">入力速度</p>
+                <p className="text-3xl font-black">{calculateKPS()}<span className="text-sm ml-1 text-neutral-400">キー/秒</span></p>
+              </div>
+              <div className="bg-neutral-700/50 p-6 rounded-3xl border border-neutral-600 text-center text-white relative">
+                <p className="text-[10px] font-bold text-neutral-400 mb-1 uppercase tracking-widest text-center">最大コンボ数</p>
+                <p className="text-3xl font-black">{stats.maxCombo}<span className="text-sm ml-1 text-neutral-400">回</span></p>
+                <p className="text-[9px] text-neutral-500 mt-2 flex items-center justify-center gap-1">
+                  <Info size={10} /> ミスなしで連続入力した文字数
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <button 
+                onClick={() => setGameState('title')}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-6 rounded-3xl flex items-center justify-center gap-3 transition-all shadow-xl text-lg"
+              >
+                <RefreshCw size={24} /> 最初に戻る
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-12 text-center text-neutral-500 text-xs max-w-lg space-y-2 opacity-50 font-medium">
+        <p>© 2026 からつん地名ばタイピング - 高速タイピングで地名を学ぶ</p>
+      </div>
+    </div>
+  );
+}
