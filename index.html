@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>からつん地名ばタイピング</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -512,7 +512,7 @@
           
           <button 
             onclick="startGame()"
-            class="group relative inline-flex items-center justify-center px-24 py-6 font-black text-white transition-all duration-200 bg-emerald-600 rounded-3xl hover:bg-emerald-500 shadow-2xl transform hover:scale-105 active:scale-95 text-xl"
+            class="group relative inline-flex items-center justify-center px-24 py-6 font-black text-white transition-all duration-200 bg-emerald-600 rounded-3xl hover:bg-emerald-500 shadow-2xl transform hover:scale-105 active:scale-95 text-xl w-full sm:w-auto"
           >
             <i data-lucide="play" class="mr-3 w-6 h-6 fill-current"></i> スタート
           </button>
@@ -535,7 +535,7 @@
             </h3>
             <ul class="text-sm text-neutral-300 space-y-2 list-disc list-inside ml-1">
               <li>画面に表示される町名をローマ字でタイピングします。</li>
-              <li>プレイ中、その町名の<strong>人口データ</strong>が表示されます。</li>
+              <li>スマートフォンでプレイする際は、<b>英語キーボード</b>をご使用ください。</li>
               <li>制限時間60秒でどれだけ多くクリアできるか挑戦！</li>
             </ul>
           </div>
@@ -546,31 +546,35 @@
 
     function showPlaying() {
       container.innerHTML = `
-        <div class="p-6 md:p-10 animate-zoom-in">
+        <div class="p-6 md:p-10 animate-zoom-in relative" onclick="document.getElementById('mobile-input').focus()">
+          
+          <!-- モバイル用隠し入力欄（画面タップ時やスタート時にキーボードを出すため） -->
+          <input type="text" id="mobile-input" class="absolute opacity-0 w-1 h-1 -z-10" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleMobileInput(event)" />
+
           <div class="flex justify-between items-center mb-8 text-left">
             <div class="flex items-center gap-6">
               <div id="time-display" class="text-5xl md:text-6xl font-black font-mono transition-colors text-emerald-400">
                 60<span class="text-xl ml-1">s</span>
               </div>
-              <button onclick="showTitle()" class="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-full text-neutral-400 hover:text-white transition-all border border-neutral-600 flex items-center gap-1.5 px-4 shadow-lg">
+              <button onclick="event.stopPropagation(); showTitle()" class="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-full text-neutral-400 hover:text-white transition-all border border-neutral-600 flex items-center gap-1.5 px-4 shadow-lg z-20 relative">
                 <i data-lucide="rotate-ccw" class="w-[18px] h-[18px]"></i>
-                <span class="text-xs font-bold">リトライ</span>
+                <span class="text-xs font-bold">中断</span>
               </button>
             </div>
             
-            <div class="flex gap-4">
-              <div class="bg-neutral-700 px-4 py-2 rounded-2xl border border-neutral-600 text-center min-w-[80px]">
+            <div class="flex gap-2 sm:gap-4">
+              <div class="bg-neutral-700 px-3 sm:px-4 py-2 rounded-2xl border border-neutral-600 text-center min-w-[60px] sm:min-w-[80px]">
                 <p class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest text-center">Clear</p>
-                <p id="clear-count" class="text-2xl font-black text-white">0</p>
+                <p id="clear-count" class="text-xl sm:text-2xl font-black text-white">0</p>
               </div>
-              <div class="bg-neutral-700 px-4 py-2 rounded-2xl border border-neutral-600 text-center min-w-[80px]">
+              <div class="bg-neutral-700 px-3 sm:px-4 py-2 rounded-2xl border border-neutral-600 text-center min-w-[60px] sm:min-w-[80px]">
                 <p class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest text-center">Combo</p>
-                <p id="combo-count" class="text-2xl font-black text-orange-400">0</p>
+                <p id="combo-count" class="text-xl sm:text-2xl font-black text-orange-400">0</p>
               </div>
             </div>
           </div>
 
-          <div class="min-h-[260px] flex flex-col justify-center mb-10">
+          <div class="min-h-[260px] flex flex-col justify-center mb-6">
             <div class="flex justify-center flex-wrap gap-2 mb-4">
               <span class="px-3 py-1.5 bg-emerald-900/50 text-emerald-400 text-xs sm:text-sm font-black rounded-full border border-emerald-800 shadow-sm flex items-center gap-1.5">
                 <i data-lucide="map-pin" class="w-3 h-3"></i> <span id="area-display"></span>地区
@@ -581,18 +585,23 @@
             </div>
             
             <div class="text-[10px] text-neutral-500 font-bold mb-1 tracking-widest uppercase">№<span id="no-display"></span> RECORD</div>
-            <h2 id="name-display" class="text-4xl sm:text-5xl md:text-6xl font-black mb-3 text-white tracking-tight leading-tight uppercase italic break-words"></h2>
-            <p id="reading-display" class="text-neutral-400 mb-6 text-lg sm:text-xl md:text-2xl tracking-[0.2em] font-medium break-words"></p>
+            <h2 id="name-display" class="text-3xl sm:text-5xl md:text-6xl font-black mb-3 text-white tracking-tight leading-tight uppercase italic break-words"></h2>
+            <p id="reading-display" class="text-neutral-400 mb-6 text-base sm:text-xl md:text-2xl tracking-[0.2em] font-medium break-words"></p>
             
-            <div class="bg-neutral-900 p-6 md:p-8 rounded-[2rem] font-mono relative shadow-inner border-b-8 border-black overflow-hidden flex items-center justify-center min-h-[120px]">
+            <div class="bg-neutral-900 p-4 sm:p-6 md:p-8 rounded-[2rem] font-mono relative shadow-inner border-b-8 border-black overflow-hidden flex items-center justify-center min-h-[100px] sm:min-h-[120px]">
               <div id="romaji-display" class="relative z-10 flex flex-wrap justify-center items-center leading-relaxed">
               </div>
             </div>
           </div>
 
-          <div class="bg-neutral-700 h-2.5 rounded-full overflow-hidden shadow-inner border border-neutral-600">
+          <div class="bg-neutral-700 h-2.5 rounded-full overflow-hidden shadow-inner border border-neutral-600 mb-4">
             <div id="time-bar" class="h-full transition-all duration-1000 ease-linear bg-emerald-500" style="width: 100%"></div>
           </div>
+
+          <p class="text-[10px] text-neutral-500 font-bold">
+            <i data-lucide="info" class="w-3 h-3 inline-block mb-0.5"></i> キーボードが閉じた場合は画面をタップしてください。
+          </p>
+
         </div>
       `;
       lucide.createIcons();
@@ -609,23 +618,23 @@
           <p class="font-bold text-lg mb-8 ${rank.color}">${rank.desc}</p>
 
           <div class="grid grid-cols-2 gap-4 mb-10">
-            <div class="bg-neutral-700/50 p-6 rounded-3xl border border-neutral-600 text-center text-white">
+            <div class="bg-neutral-700/50 p-4 sm:p-6 rounded-3xl border border-neutral-600 text-center text-white">
               <p class="text-[10px] font-bold text-neutral-400 mb-1 uppercase tracking-widest text-center">件数（町名）</p>
-              <p class="text-3xl font-black">${stats.questionsCleared}<span class="text-sm ml-1 text-neutral-400">件</span></p>
+              <p class="text-2xl sm:text-3xl font-black">${stats.questionsCleared}<span class="text-sm ml-1 text-neutral-400">件</span></p>
             </div>
-            <div class="bg-neutral-700/50 p-6 rounded-3xl border border-neutral-600 text-center text-white">
+            <div class="bg-neutral-700/50 p-4 sm:p-6 rounded-3xl border border-neutral-600 text-center text-white">
               <p class="text-[10px] font-bold text-neutral-400 mb-1 uppercase tracking-widest text-center">正確率</p>
-              <p class="text-3xl font-black">${calculateAccuracy()}%</p>
+              <p class="text-2xl sm:text-3xl font-black">${calculateAccuracy()}%</p>
             </div>
-            <div class="bg-neutral-700/50 p-6 rounded-3xl border border-neutral-600 text-center text-white">
+            <div class="bg-neutral-700/50 p-4 sm:p-6 rounded-3xl border border-neutral-600 text-center text-white">
               <p class="text-[10px] font-bold text-neutral-400 mb-1 uppercase tracking-widest text-center">入力速度</p>
-              <p class="text-3xl font-black">${calculateKPS()}<span class="text-sm ml-1 text-neutral-400">キー/秒</span></p>
+              <p class="text-2xl sm:text-3xl font-black">${calculateKPS()}<span class="text-sm ml-1 text-neutral-400">キー/秒</span></p>
             </div>
-            <div class="bg-neutral-700/50 p-6 rounded-3xl border border-neutral-600 text-center text-white relative">
+            <div class="bg-neutral-700/50 p-4 sm:p-6 rounded-3xl border border-neutral-600 text-center text-white relative">
               <p class="text-[10px] font-bold text-neutral-400 mb-1 uppercase tracking-widest text-center">最大コンボ数</p>
-              <p class="text-3xl font-black">${stats.maxCombo}<span class="text-sm ml-1 text-neutral-400">回</span></p>
-              <p class="text-[9px] text-neutral-500 mt-2 flex items-center justify-center gap-1">
-                <i data-lucide="info" class="w-2.5 h-2.5 inline-block"></i> ミスなしで連続入力した文字数
+              <p class="text-2xl sm:text-3xl font-black">${stats.maxCombo}<span class="text-sm ml-1 text-neutral-400">回</span></p>
+              <p class="text-[9px] text-neutral-500 mt-2 flex items-center justify-center gap-1 hidden sm:flex">
+                <i data-lucide="info" class="w-2.5 h-2.5 inline-block"></i> ミスなしの連続入力数
               </p>
             </div>
           </div>
@@ -658,6 +667,10 @@
         
         const romajiContainer = document.getElementById('romaji-display');
         romajiContainer.className = `relative z-10 flex flex-wrap justify-center items-center leading-relaxed ${getRomajiStyle(activeQ.romaji)}`;
+        
+        // 問題が変わったらスマホ用入力欄を空にする
+        const mobileInput = document.getElementById('mobile-input');
+        if (mobileInput) mobileInput.value = '';
       }
 
       const target = activeQ.romaji;
@@ -717,12 +730,19 @@
       updatePlayingUI(true);
       updateTimerUI();
       startTimer();
+
+      // モバイル向けにスタート後、自動でキーボードを開く
+      setTimeout(() => {
+        const mobileInput = document.getElementById('mobile-input');
+        if (mobileInput) mobileInput.focus();
+      }, 100);
     }
 
-    // --- キーボード入力処理 ---
-    window.addEventListener('keydown', (e) => {
-      if (gameState !== 'playing') return;
-      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(e.key)) return;
+    // --- キーボード入力処理（コアロジック） ---
+    function handleTyping(key) {
+      if (gameState !== 'playing' || !key) return;
+      // 無効なキー入力を除外
+      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Unidentified', 'Process', 'Enter', 'Backspace'].includes(key)) return;
 
       const currentQ = gameQuestions[currentQuestionIndex];
       if (!currentQ || !currentQ.romaji) return;
@@ -730,8 +750,8 @@
       const target = currentQ.romaji;
       const nextChar = target[userInput.length];
 
-      if (e.key.toLowerCase() === nextChar) {
-        userInput += e.key.toLowerCase();
+      if (key.toLowerCase() === nextChar) {
+        userInput += key.toLowerCase();
         stats.correctChars++;
         stats.totalChars++;
         stats.combo++;
@@ -755,6 +775,24 @@
         stats.combo = 0;
         updatePlayingUI(false);
       }
+    }
+
+    // スマホのソフトウェアキーボード入力イベント
+    function handleMobileInput(e) {
+      const val = e.target.value;
+      if (val.length === 0) return;
+      
+      // 入力された文字の最後を取得して処理に渡す
+      const lastChar = val[val.length - 1];
+      handleTyping(lastChar);
+      
+      // 次の入力を受け付けるために空にする
+      e.target.value = '';
+    }
+
+    // PC用物理キーボード入力イベント
+    window.addEventListener('keydown', (e) => {
+      handleTyping(e.key);
     });
 
     // --- 初期化処理 ---
